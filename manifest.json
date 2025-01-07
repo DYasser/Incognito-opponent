@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "HideOp-GoogleExt",
+    "description": "This extension",
+    "version": "1.0",
+    
+    "icons":{
+        "16":"/images/icons8-chess-16.png",
+        "48":"/images/icons8-chess-48.png",
+        "128":"/images/icons8-chess-128.png"
+    },
+
+    "permissions": [
+        "activeTab"
+    ],
+
+    "content_scripts":[{
+        "matches":["https://www.chess.com/*"],
+        "css": ["main.css"],
+        "js": ["script.js"]
+    }]
+  } 

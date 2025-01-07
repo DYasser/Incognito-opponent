@@ -1,0 +1,27 @@
+/* a.user-username-component.user-username-white.user-username-link.user-tagline-username */
+/* div.board-layout-top div.user-tagline-component, div.game-start-message-component{
+    display: none;
+} */
+
+/* div.player-top div.player-avatar-component.player-avatar img{
+    content: url("https://images.chesscomfiles.com/uploads/v1/user/415366349.87e6b429.50x50o.6f8d0f992a64.png");
+}
+
+div.resizable-chat-area-content a.user-username-component.user-username-current.user-username-link.user-tagline-chat-member{
+    visibility: hidden; 
+}
+
+div.resizable-chat-area-content a.user-username-component.user-username-current.user-username-link.user-tagline-chat-member::after{
+    content: "\A Opponent: ";
+    visibility: visible; 
+} */
+
+/* div.chat-request-component div strong {
+    visibility: hidden; 
+    width: 0; 
+    height: 0; 
+}
+div.chat-request-component div strong::after{  
+    content: "\A Opponent"; 
+    visibility: visible; 
+}  */
