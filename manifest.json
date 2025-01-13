@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "HideOp-GoogleExt",
+    "name": "Incognito opponent",
     "description": "This extension",
     "version": "1.0",
     
@@ -10,13 +10,8 @@
         "128":"/images/icons8-chess-128.png"
     },
 
-    "permissions": [
-        "activeTab"
-    ],
-
     "content_scripts":[{
         "matches":["https://www.chess.com/*"],
-        "css": ["main.css"],
         "js": ["script.js"]
     }]
   } 

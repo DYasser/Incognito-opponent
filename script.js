@@ -144,13 +144,10 @@ function changeTextContent() {
     }
 }
 
-// Create a MutationObserver to monitor changes in the DOM
 const observer = new MutationObserver(function() {
-    // Call the changeTextContent function when the DOM changes
     changeTextContent();
 });
 
-// Configure the observer to watch for changes in child elements or subtree
 observer.observe(document.body, {
     childList: true,
     subtree: true
