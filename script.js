@@ -1,157 +1,194 @@
-// script.js
-
-// XPath to select the specific element
-let xpath_name = '//div[@id="board-layout-player-top"]//div[@class="user-tagline-component"]//a';
-let xpath_rank = '//div[@id="board-layout-player-top"]//div[@class="user-tagline-component"]//span';
-let xpath_others = '//div[@id="board-layout-player-top"]//div[@class="user-tagline-component"]/*[not(self::a or self::span or (@class="connection-component connection-excellent"))]';
-let xpath_avatar = '//div[@class="player-component player-top"]//div[@class="player-avatar-component player-avatar"]//img'
-let xpath_welcome_chat = '//div[@class="game-start-message-component"]';
-let xpath_op_chat = '//div[@class="resizable-chat-area-content"]//a[@class="user-username-component user-username-current user-username-link user-tagline-chat-member"]';
-let xpath_wants_chat = '//div[@class="chat-request-component"]//div//strong';
-let xpath_name_click = '//*[@id="user-popover-component"]/div/div/div[1]/div/div[1]/a'
-let xpath_click_others = '//*[@id="user-popover-component"]/div/div/div[1]/div/div[1]/*[not(self::a)]';
-let xpath_click_username = '//*[@id="user-popover-component"]/div/div/div[1]/div/div[2]';
-let xpath_click_rank = '//*[@id="user-popover-component"]/div/div/div[1]/div/div[3]/span[1]/span[2]';
-let xpath_click_avatar = '//*[@id="user-popover-component"]/div/div/div[1]/a/img';
-let xpath_game_over = '//*[@id="board-layout-chessboard"]/div[4]/div/*';
-
-let opponent_name = "";
-let opponent_rank = "";
-
-// Function to change the content and color
-function changeTextContent() {
-    // Use document.evaluate to find the element using the XPath expression
-    let result_name = document.evaluate(xpath_name, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_rank = document.evaluate(xpath_rank, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_others = document.evaluate(xpath_others, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_avatar = document.evaluate(xpath_avatar, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_welcome_chat = document.evaluate(xpath_welcome_chat, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_op_chat = document.evaluate(xpath_op_chat, document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-    let result_wants_chat = document.evaluate(xpath_wants_chat, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_name_click = document.evaluate(xpath_name_click, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_click_username = document.evaluate(xpath_click_username, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_click_rank = document.evaluate(xpath_click_rank, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_click_avatar = document.evaluate(xpath_click_avatar, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-    let result_game_over = document.evaluate(xpath_game_over, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-
-    // Get the first matched element
-    let element_name = result_name.singleNodeValue;
-    let element_rank = result_rank.singleNodeValue;
-    let element_others = result_others.singleNodeValue;
-    let element_avatar = result_avatar.singleNodeValue;
-    let element_welcome_chat = result_welcome_chat.singleNodeValue;
-    let element_op_chat = result_op_chat.iterateNext();
-    let element_wants_chat = result_wants_chat.singleNodeValue;
-    let element_name_click = result_name_click.singleNodeValue;
-    let element_to_keep = document.evaluate(xpath_name_click, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    let elements_click_others = document.evaluate(xpath_click_others, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    let elements_click_username = result_click_username.singleNodeValue;
-    let elements_click_rank = result_click_rank.singleNodeValue;
-    let elements_click_avatar = result_click_avatar.singleNodeValue;
-    let elements_game_over = result_game_over.singleNodeValue;
-
-    // If the element exists, change its text content and color
-    if(elements_game_over){
-        console.log("Game_Over")
+// --- Helper Function (for CSS injection) ---
+function injectCSS(rule) {
+    const styleId = 'chess-anon-styles';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = styleId;
+        styleTag.type = 'text/css';
+        document.head.appendChild(styleTag);
     }
-    else{
-        if (element_name) {
-            if(opponent_name == "")
-                opponent_name = element_name.textContent
-            element_name.textContent = "Opponent";  // Change text content to "Opponent"
-        } else {
-            console.log("Element not found1");
-            console.log("op name");
-            console.log(opponent_name);
-            console.log("op rank");
-            console.log(opponent_rank);
+    styleTag.appendChild(document.createTextNode(rule));
+}
+
+// --- Main Hiding Logic ---
+
+function applyOpponentHiding() {
+    // console.log("Applying highly targeted opponent hiding logic..."); // Uncomment for detailed debugging
+
+    // 1. Target and modify the opponent's username (main player info)
+    const usernameElement = document.querySelector('.player-component.player-top [data-test-element="user-tagline-username"]');
+    if (usernameElement && usernameElement.textContent.trim() !== 'Opponent') { // Use .trim() for robustness
+        usernameElement.textContent = 'Opponent';
+        if (usernameElement.dataset.username) {
+            usernameElement.removeAttribute('data-username');
         }
-        
-        if (element_rank) {
-            if(opponent_rank == "")
-                opponent_rank = element_rank.textContent
-            element_rank.textContent = "(???)";  // Change text content to "Opponent"
-        } else {
-            console.log("Element not found2");
+        if (usernameElement.dataset.testElement) {
+            usernameElement.removeAttribute('data-test-element');
         }
-    
-        if (element_others) {
-            element_others.style.display = "none";
-        } else {
-            console.log("Element not found3");
-        }
-        
-        if (element_avatar) {
-            element_avatar.style.content = "url('https://images.chesscomfiles.com/uploads/v1/user/415366349.87e6b429.50x50o.6f8d0f992a64.png')";
-        } else {
-            console.log("Element not found4");
-        }
-    
-        if (elements_click_avatar) {
-            elements_click_avatar.style.content = "url('https://images.chesscomfiles.com/uploads/v1/user/415366349.87e6b429.50x50o.6f8d0f992a64.png')";
-        } else {
-            console.log("Element not found4");
-        }
-    
-        if (element_welcome_chat) {
-            element_welcome_chat.style.display = "none";
-        } else {
-            console.log("Element not found5");
-        }
-        
-        if (!element_op_chat) {
-            console.log("Elements not found6");
-        } 
-        
-        else {
-            while (element_op_chat) {
-                element_op_chat.textContent = "Opponent:"; // Change text content to "Opponent"
-                element_op_chat = result_op_chat.iterateNext(); // Move to the next matching element
+        // console.log("Changed main opponent username to 'Opponent'.");
+    }
+
+    // 2. Hide specific elements via CSS injection (only inject once)
+    if (!window.chessAnonStylesInjected) {
+        // console.log("Injecting persistent CSS rules for hiding.");
+
+        // Opponent's Flag: <div class="country-flags-component country-ma country-flags-small">
+        injectCSS(`
+            .player-component.player-top .country-flags-component {
+                display: none !important;
             }
-        }
-    
-        if (element_wants_chat) {
-            element_wants_chat.textContent = "Opponent";  // Change text content to "Opponent"
-        } else {
-            console.log("Element not found7");
-        }
-    
-        if (element_name_click) {
-            element_name_click.textContent = "Opponent";  // Change text content to "Opponent"
-        } else {
-            console.log("Element not found8");
-        }
-        
-        if (element_to_keep && elements_click_others.snapshotLength > 0) {
-            for (let i = 0; i < elements_click_others.snapshotLength; i++) {
-                elements_click_others.snapshotItem(i).style.display = "none";
+        `);
+
+        // Opponent's Flair: <img class="flair-rpc-component flair-rpc-small" ...>
+        injectCSS(`
+            .player-component.player-top .flair-rpc-component {
+                display: none !important;
             }
-        } else {
-            console.log("No elements found to hide or `<a>` element is missing.");
+        `);
+
+        // Opponent's Rating (Ranking): <div class="cc-text-medium cc-user-rating-white">
+        injectCSS(`
+            .player-component.player-top .cc-user-rating-white {
+                display: none !important;
+            }
+        `);
+
+        // Opponent's Avatar (common guesses)
+        injectCSS(`
+            .player-component.player-top .user-avatar,
+            .player-component.player-top .player-avatar {
+                display: none !important;
+            }
+        `);
+
+        window.chessAnonStylesInjected = true;
+    }
+
+    // 3. Handle the Game Start Message in Chat
+    const gameStartMessage = document.querySelectorAll('.game-start-message-component');
+    const desiredGameStartMessage = '<strong>Opponent Incognito Activated, enjoy your game!</strong>';
+
+    gameStartMessage.forEach(startmsg => {
+        if (startmsg && startmsg.innerHTML !== desiredGameStartMessage) {
+            startmsg.innerHTML = desiredGameStartMessage;
+            // console.log("Modified game start message in chat.");
         }
-    
-        if (elements_click_username) {
-            elements_click_username.style.display = "none";
-        } else {
-            console.log("Element not found10");
+    });
+    // 4. Target and modify ALL opponent names in chat messages
+    // This targets <a class="user-username-component ... user-tagline-chat-member">
+    const chatUsernameElements = document.querySelectorAll('.user-username-component.user-username-current.user-username-link.user-tagline-chat-member');
+
+    chatUsernameElements.forEach(chatUsername => {
+        // We ensure we only modify if the text isn't already 'Opponent:'
+        // AND it's a link to a member profile (to avoid modifying non-username elements if classes overlap)
+        if (chatUsername.textContent && chatUsername.textContent.trim() !== 'Opponent:') {
+
+            chatUsername.textContent = 'Opponent:';
         }
-    
-        if (elements_click_rank) {
-            elements_click_rank.textContent = "???";
-        } else {
-            console.log("Element not found11");
+    });
+
+    // 5. Hide the User Popover (new logic using JavaScript direct style manipulation)
+    const userPopover = document.querySelector('.user-popover-about');
+    if (userPopover && userPopover.style.display !== 'none') {
+        userPopover.style.display = 'none';
+        // console.log("Hidden user popover.");
+    }
+
+    // 6. Hide the "Follow" button using JavaScript (same approach)
+    // Common selectors for the follow button. Choose the most accurate one or add both.
+    const followButton = document.querySelector('.player-component.player-top .follow-button, .player-component.player-top .follow-button-component');
+    if (followButton && followButton.style.display !== 'none') {
+        followButton.style.display = 'none';
+        // console.log("Hidden follow button.");
+    }
+
+    // 7. Replace the opponent's outer avatar image
+    // <img class="cc-avatar-img" ...>
+    const existingAvatarImage = document.querySelector('.cc-avatar-img');
+    const newAvatarURL = 'https://drive.google.com/file/d/1-rkxF95-JLBZt-jpbOsZUffCY19A_hqi/view?usp=sharing';
+
+    if (existingAvatarImage) {
+        // Check if the avatar is already our custom one to avoid redundant replacements
+        existingAvatarImage.style.display = 'none'; // Hide the existing avatar
+    } 
+
+    // 8. Modify the opponent's outer avatar Anchor element
+    const avatarAnchor = document.querySelector('.cc-avatar-component.cc-avatar-size-64.cc-avatar-playing.user-popover-avatar');
+    if (avatarAnchor) {
+        // Only modify if it's not already empty or "Opponent" to avoid redundant changes
+        if (avatarAnchor.href !== '') {
+            avatarAnchor.href = ''; // remove link to profile
+            // console.log("Removed avatar anchor href.");
+        }
+        if (avatarAnchor.title !== 'Opponent') {
+            avatarAnchor.title = 'Opponent'; // change title to "Opponent"
+            // console.log("Changed avatar anchor title.");
         }
     }
 }
 
-const observer = new MutationObserver(function() {
-    changeTextContent();
-});
+// --- MutationObserver Setup ---
+let observer = null;
 
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+function startObserver() {
+    if (observer) {
+        observer.disconnect();
+        // console.log("Previous observer disconnected.");
+    }
 
-// Initial call to apply changes
-changeTextContent();
+    const targetNode = document.querySelector('.board-layout-main, .main-board-layout');
+
+    if (targetNode) {
+        // console.log("Starting MutationObserver on game area:", targetNode);
+
+        observer = new MutationObserver((mutationsList) => {
+            let relevantChange = false;
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Watch for relevant nodes being added (player info, game messages, chat messages)
+                            if (node.matches('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member') ||
+                                node.querySelector('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member')) {
+                                relevantChange = true;
+                                break;
+                            }
+                        }
+                    }
+                } else if (mutation.type === 'attributes' && mutation.target.nodeType === Node.ELEMENT_NODE) {
+                     // Watch for attribute changes on existing relevant elements
+                     if (mutation.target.matches('[data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member')) {
+                         relevantChange = true;
+                     }
+                }
+                if (relevantChange) break;
+            }
+
+            if (relevantChange) {
+                // console.log("Observer detected relevant change. Re-applying modifications.");
+                requestAnimationFrame(applyOpponentHiding);
+            }
+        });
+
+        observer.observe(targetNode, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['data-test-element', 'data-username', 'class', 'innerHTML', 'href']
+        });
+    } else {
+        // console.log("Target node for observer not found. Retrying observer setup...");
+        setTimeout(startObserver, 500);
+    }
+}
+
+// --- Initialization ---
+
+function initializeExtension() {
+    applyOpponentHiding();
+    startObserver();
+    setInterval(applyOpponentHiding, 1); // Aggressive fallback for persistence
+}
+
+setTimeout(initializeExtension, 300); // Initial delay, then the 1ms interval takes over

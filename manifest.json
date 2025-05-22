@@ -3,6 +3,13 @@
     "name": "Incognito opponent",
     "description": "This extension",
     "version": "1.0",
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "*://www.chess.com/*"
+    ],
     
     "icons":{
         "16":"/images/icons8-chess-16.png",
@@ -10,8 +17,11 @@
         "128":"/images/icons8-chess-128.png"
     },
 
-    "content_scripts":[{
-        "matches":["https://www.chess.com/*"],
-        "js": ["script.js"]
-    }]
+    "content_scripts": [
+    {
+      "matches": ["*://www.chess.com/*"],
+      "js": ["script.js"],
+      "run_at": "document_start"
+    }
+  ]
   } 
