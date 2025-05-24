@@ -1,164 +1,247 @@
-// --- Helper Function (for CSS injection) ---
-function injectCSS(rule) {
+// --- Global State ---
+let isHidingActive = true; // Default: Hiding is ON
+let chessAnonStyleSheet = null; // Reference to our <style> tag for CSS rules
+
+// --- Helper: Get or Create Stylesheet ---
+function getChessAnonStyleSheet() {
     const styleId = 'chess-anon-styles';
-    let styleTag = document.getElementById(styleId);
-    if (!styleTag) {
-        styleTag = document.createElement('style');
-        styleTag.id = styleId;
-        styleTag.type = 'text/css';
-        document.head.appendChild(styleTag);
+    if (!chessAnonStyleSheet) {
+        chessAnonStyleSheet = document.getElementById(styleId);
+        if (!chessAnonStyleSheet) {
+            chessAnonStyleSheet = document.createElement('style');
+            chessAnonStyleSheet.id = styleId;
+            chessAnonStyleSheet.type = 'text/css';
+            document.head.appendChild(chessAnonStyleSheet);
+        }
     }
-    styleTag.appendChild(document.createTextNode(rule));
+    return chessAnonStyleSheet;
 }
 
-// --- Main Hiding Logic ---
+// --- CSS Management ---
+function updateInjectedCSS() {
+    const styleSheet = getChessAnonStyleSheet();
+    let rules = '';
 
-function applyOpponentHiding() {
-    // console.log("Applying highly targeted opponent hiding logic..."); // Uncomment for detailed debugging
-
-    // 1. Target and modify the opponent's username (main player info)
-    const usernameElement = document.querySelector('.player-component.player-top [data-test-element="user-tagline-username"]');
-    if (usernameElement && usernameElement.textContent.trim() !== 'Opponent') { // Use .trim() for robustness
-        usernameElement.textContent = 'Opponent';
-        if (usernameElement.dataset.username) {
-            usernameElement.removeAttribute('data-username');
-        }
-        if (usernameElement.dataset.testElement) {
-            usernameElement.removeAttribute('data-test-element');
-        }
-        // console.log("Changed main opponent username to 'Opponent'.");
-    }
-
-    // 2. Hide specific elements via CSS injection (only inject once)
-    if (!window.chessAnonStylesInjected) {
-        // console.log("Injecting persistent CSS rules for hiding.");
-
-        // Opponent's Flag: <div class="country-flags-component country-ma country-flags-small">
-        injectCSS(`
-            .player-component.player-top .country-flags-component {
-                display: none !important;
-            }
-        `);
-
-        // Opponent's Flair: <img class="flair-rpc-component flair-rpc-small" ...>
-        injectCSS(`
-            .player-component.player-top .flair-rpc-component {
-                display: none !important;
-            }
-        `);
-
-        // Opponent's Rating (Ranking): <div class="cc-text-medium cc-user-rating-white">
-        injectCSS(`
-            .player-component.player-top .cc-user-rating-white {
-                display: none !important;
-            }
-        `);
-
-        // Opponent's Avatar (common guesses)
-        injectCSS(`
+    if (isHidingActive) {
+        rules = `
+            /* Opponent's Flag, Flair, Rating, Avatar (CSS part) */
+            .player-component.player-top .country-flags-component,
+            .player-component.player-top .flair-rpc-component,
+            .player-component.player-top .cc-user-rating-white,
             .player-component.player-top .user-avatar,
             .player-component.player-top .player-avatar {
                 display: none !important;
             }
-        `);
+            /* Additional rule to hide flag, flair, and username for game board animation player */
+            .game-board-animation-player-country-flag,
+            .game-board-animation-player-flair {
+                display: none !important;
+            }
 
-        window.chessAnonStylesInjected = true;
+            /* --- SOLUTION for Animation Player Avatar --- */
+            .game-board-animation-player-component .player-avatar-component img,
+            /* Also include the specific avatar class from other parts of the site if it helps catch other instances */
+            .cc-avatar-img
+            {
+                display: none !important;
+            }
+
+            /* Hide all takeover-overlay elements (from previous request) */
+            .takeover-overlay {
+                display: none !important;
+            }
+
+            /* Add any other global CSS hide rules here */
+        `;
     }
+    // Apply rules or clear them
+    if (styleSheet.innerHTML !== rules) {
+        styleSheet.innerHTML = rules;
+    }
+}
+
+function manageElementVisibilityAndText() {
+    // Helper to set or restore text, storing original in dataset
+    function toggleText(element, newText, originalDataKey) {
+        if (!element) return;
+        if (isHidingActive) {
+            if (!element.dataset[originalDataKey]) {
+                element.dataset[originalDataKey] = element.textContent;
+            }
+            if (element.textContent !== newText) {
+                element.textContent = newText;
+            }
+        } else {
+            if (element.dataset[originalDataKey] && element.textContent !== element.dataset[originalDataKey]) {
+                element.textContent = element.dataset[originalDataKey];
+            }
+        }
+    }
+
+    // Helper to set or restore innerHTML, storing original in dataset
+    function toggleInnerHTML(element, newHTML, originalDataKey) {
+        if (!element) return;
+        if (isHidingActive) {
+            if (!element.dataset[originalDataKey]) {
+                element.dataset[originalDataKey] = element.innerHTML;
+            }
+            if (element.innerHTML !== newHTML) {
+                element.innerHTML = newHTML;
+            }
+        } else {
+            if (element.dataset[originalDataKey] && element.innerHTML !== element.dataset[originalDataKey]) {
+                element.innerHTML = element.dataset[originalDataKey];
+            }
+        }
+    }
+
+    // Helper to toggle element display style
+    function toggleDisplay(selector, displayValue = 'none') {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.style.display = isHidingActive ? displayValue : ''; // Empty string reverts to CSS default
+        }
+    }
+
+    // 1. Target and modify the opponent's username (main player info)
+    const usernameElement = document.querySelector('.player-component.player-top [data-test-element="user-tagline-username"]');
+    toggleText(usernameElement, 'Opponent', 'originalUsername');
+    // Attributes like data-username, data-test-element are harder to "restore" perfectly
+    // without knowing if they should exist or what their value was if absent.
+    // For simplicity, we'll focus on visible text and styles.
+    // If hiding, we could still remove them:
+    if (usernameElement && isHidingActive) {
+        if (usernameElement.dataset.username) usernameElement.removeAttribute('data-username');
+        if (usernameElement.dataset.testElement) usernameElement.removeAttribute('data-test-element');
+    }
+
+    // NEW: Target the specific username element you identified
+    const otherUsernameElement = document.querySelector('.cc-text-medium-bold.cc-user-username-component.cc-user-username-white');
+    toggleText(otherUsernameElement, 'Opponent', 'originalOtherUsername');
+
 
     // 3. Handle the Game Start Message in Chat
-    const gameStartMessage = document.querySelectorAll('.game-start-message-component');
-    const desiredGameStartMessage = '<strong>Opponent Incognito Activated, enjoy your game!</strong>';
-
-    gameStartMessage.forEach(startmsg => {
-        if (startmsg && startmsg.innerHTML !== desiredGameStartMessage) {
-            startmsg.innerHTML = desiredGameStartMessage;
-            // console.log("Modified game start message in chat.");
-        }
+    const gameStartMessages = document.querySelectorAll('.game-start-message-component');
+    const desiredGameStartMessage = '<strong>Opponent Incognito Activated, enjoy your game!</strong>'; //
+    gameStartMessages.forEach(startmsg => {
+        toggleInnerHTML(startmsg, desiredGameStartMessage, 'originalGameStartMessage');
     });
+
     // 4. Target and modify ALL opponent names in chat messages
-    // This targets <a class="user-username-component ... user-tagline-chat-member">
     const chatUsernameElements = document.querySelectorAll('.user-username-component.user-username-current.user-username-link.user-tagline-chat-member');
-
     chatUsernameElements.forEach(chatUsername => {
-        // We ensure we only modify if the text isn't already 'Opponent:'
-        // AND it's a link to a member profile (to avoid modifying non-username elements if classes overlap)
-        if (chatUsername.textContent && chatUsername.textContent.trim() !== 'Opponent:') {
-
-            chatUsername.textContent = 'Opponent:';
-        }
+        toggleText(chatUsername, 'Opponent:', 'originalChatUsername');
     });
 
-    // 5. Hide the User Popover (new logic using JavaScript direct style manipulation)
-    const userPopover = document.querySelector('.user-popover-about');
-    if (userPopover && userPopover.style.display !== 'none') {
-        userPopover.style.display = 'none';
-        // console.log("Hidden user popover.");
-    }
+    // 5. Hide the User Popover
+    toggleDisplay('.user-popover-about');
 
-    // 6. Hide the "Follow" button using JavaScript (same approach)
-    // Common selectors for the follow button. Choose the most accurate one or add both.
-    const followButton = document.querySelector('.player-component.player-top .follow-button, .player-component.player-top .follow-button-component');
-    if (followButton && followButton.style.display !== 'none') {
-        followButton.style.display = 'none';
-        // console.log("Hidden follow button.");
-    }
+    // 6. Hide the "Follow" button
+    toggleDisplay('.player-component.player-top .follow-button, .player-component.player-top .follow-button-component');
 
-    // 7. Replace the opponent's outer avatar image
-    // <img class="cc-avatar-img" ...>
-    const existingAvatarImage = document.querySelector('.cc-avatar-img');
-    const newAvatarURL = 'https://drive.google.com/file/d/1-rkxF95-JLBZt-jpbOsZUffCY19A_hqi/view?usp=sharing';
-
-    if (existingAvatarImage) {
-        // Check if the avatar is already our custom one to avoid redundant replacements
-        existingAvatarImage.style.display = 'none'; // Hide the existing avatar
-    } 
+    // 7. Replace the opponent's outer avatar image (hiding it)
+    toggleDisplay('.cc-avatar-img');
 
     // 8. Modify the opponent's outer avatar Anchor element
     const avatarAnchor = document.querySelector('.cc-avatar-component.cc-avatar-size-64.cc-avatar-playing.user-popover-avatar');
     if (avatarAnchor) {
-        // Only modify if it's not already empty or "Opponent" to avoid redundant changes
-        if (avatarAnchor.href !== '') {
-            avatarAnchor.href = ''; // remove link to profile
-            // console.log("Removed avatar anchor href.");
-        }
-        if (avatarAnchor.title !== 'Opponent') {
-            avatarAnchor.title = 'Opponent'; // change title to "Opponent"
-            // console.log("Changed avatar anchor title.");
+        if (isHidingActive) {
+            if (!avatarAnchor.dataset.originalHref) avatarAnchor.dataset.originalHref = avatarAnchor.href;
+            if (!avatarAnchor.dataset.originalTitle) avatarAnchor.dataset.originalTitle = avatarAnchor.title;
+            avatarAnchor.href = ''; //
+            avatarAnchor.title = 'Opponent'; //
+        } else {
+            if (avatarAnchor.dataset.originalHref) avatarAnchor.href = avatarAnchor.dataset.originalHref;
+            if (avatarAnchor.dataset.originalTitle) avatarAnchor.title = avatarAnchor.dataset.originalTitle;
         }
     }
+
+    // 9. Hide the game board animation player username
+    const gameAnimationUsername = document.querySelector('.game-board-animation-player-username');
+    toggleText(gameAnimationUsername, 'Opponent', 'originalAnimationUsername');
 }
+
+// --- Master Function to Apply All Visual Changes ---
+function applyVisualState() {
+    updateInjectedCSS();
+    manageElementVisibilityAndText();
+}
+
+// --- Toggle Button Setup ---
+function setupToggleButton() {
+    const buttonId = 'toggle-chess-anon-button';
+    let button = document.getElementById(buttonId);
+    if (button) { // Button already exists, just update text
+        updateButtonAppearance(button);
+        return;
+    }
+
+    button = document.createElement('button');
+    button.id = buttonId;
+    // Basic styling (can be customized further via CSS injection if needed)
+    Object.assign(button.style, {
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        zIndex: '10000', // High z-index to be on top
+        padding: '8px 12px',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        backgroundColor: '#f0f0f0',
+        color: '#333',
+        cursor: 'pointer',
+        fontSize: '12px'
+    });
+
+    function updateButtonAppearance(btn) {
+        if (isHidingActive) {
+            btn.textContent = 'Show Opponent Info';
+            btn.style.backgroundColor = '#ffdddd'; // Light red when hiding
+            btn.style.color = '#a00';
+        } else {
+            btn.textContent = 'Hide Opponent Info';
+            btn.style.backgroundColor = '#ddffdd'; // Light green when showing
+            btn.style.color = '#0a0';
+        }
+    }
+
+    button.addEventListener('click', () => {
+        isHidingActive = !isHidingActive;
+        updateButtonAppearance(button);
+        applyVisualState(); // Re-apply all visual rules based on the new state
+    });
+
+    document.body.appendChild(button);
+    updateButtonAppearance(button); // Set initial text and style
+}
+
 
 // --- MutationObserver Setup ---
 let observer = null;
-
 function startObserver() {
     if (observer) {
         observer.disconnect();
-        // console.log("Previous observer disconnected.");
     }
 
-    const targetNode = document.querySelector('.board-layout-main, .main-board-layout');
+    const targetNode = document.querySelector('.board-layout-main, .main-board-layout'); //
 
     if (targetNode) {
-        // console.log("Starting MutationObserver on game area:", targetNode);
-
         observer = new MutationObserver((mutationsList) => {
             let relevantChange = false;
             for (const mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     for (const node of mutation.addedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Watch for relevant nodes being added (player info, game messages, chat messages)
-                            if (node.matches('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member') ||
-                                node.querySelector('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member')) {
+                            // Check if the added node or its children match selectors we care about
+                            if (node.matches('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member, .game-board-animation-player-username, .user-popover-about, .follow-button, .follow-button-component, .cc-avatar-img, .cc-avatar-component') ||
+                                node.querySelector('.player-component, [data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member, .game-board-animation-player-username, .user-popover-about, .follow-button, .follow-button-component, .cc-avatar-img, .cc-avatar-component')) {
                                 relevantChange = true;
                                 break;
                             }
                         }
                     }
                 } else if (mutation.type === 'attributes' && mutation.target.nodeType === Node.ELEMENT_NODE) {
-                     // Watch for attribute changes on existing relevant elements
-                     if (mutation.target.matches('[data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member')) {
+                     if (mutation.target.matches('[data-test-element="user-tagline-username"], .game-start-message-component, .user-tagline-chat-member, .game-board-animation-player-username, .cc-avatar-component')) { //
                          relevantChange = true;
                      }
                 }
@@ -166,8 +249,7 @@ function startObserver() {
             }
 
             if (relevantChange) {
-                // console.log("Observer detected relevant change. Re-applying modifications.");
-                requestAnimationFrame(applyOpponentHiding);
+                requestAnimationFrame(applyVisualState);
             }
         });
 
@@ -175,20 +257,24 @@ function startObserver() {
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['data-test-element', 'data-username', 'class', 'innerHTML', 'href']
+            // Watching specific attributes can be more performant if known, but broader is safer for dynamic sites
+            attributeFilter: ['class', 'style', 'href', 'data-test-element', 'data-username'] // (expanded slightly)
         });
     } else {
-        // console.log("Target node for observer not found. Retrying observer setup...");
-        setTimeout(startObserver, 500);
+        setTimeout(startObserver, 500); // Retry if target not found
     }
 }
 
 // --- Initialization ---
+function initializeChessAnonymizer() {
+    setupToggleButton(); // Create the toggle button
+    applyVisualState();  // Apply the initial visual state based on `isHidingActive`
+    startObserver();     // Start observing DOM changes
 
-function initializeExtension() {
-    applyOpponentHiding();
-    startObserver();
-    setInterval(applyOpponentHiding, 1); // Aggressive fallback for persistence
+    // Fallback interval, less aggressive than the original 1ms.
+    // This helps catch things the MutationObserver might miss or for elements outside its scope.
+    setInterval(applyVisualState, 1); // Adjusted from 1ms
 }
 
-setTimeout(initializeExtension, 300); // Initial delay, then the 1ms interval takes over
+// Delay initialization slightly to give the page time to load initial elements
+setTimeout(initializeChessAnonymizer, 300); // (using the original delay)
